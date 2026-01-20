@@ -47,3 +47,46 @@ print("Function name: ", function_name)
 refined_args = json.loads(args)
 answer = perform_arithmetic(**refined_args)
 print(f"ANSWER: {answer}")
+
+# --------------------
+
+from langchain_core.tools import tool
+from langchain_classic import hub
+from langchain_classic.agents import AgentExecutor, create_openai_tools_agent
+
+@tool
+def perform_arithmetic(first_num: int, second_num: int, operation: str) -> int:
+    """Multiply two integers together.
+
+    Args:
+        first_num: first number in the arithmetic operation. If dividing, this would be the numerator.
+        second_num: second number in the arithmetic operation. If dividing, this would be the denominator.
+        operation: one of (add, subtract, multiply, divide)
+    """
+
+    if operation == 'add':
+      return first_num + second_num
+    elif operation == 'subtract':
+      return first_num - second_num
+    elif operation == 'multiply':
+      return first_num * second_num
+    elif operation == 'divide':
+      return first_num / second_num
+    else:
+      return f"The following operation is not allowed: {operation}"
+
+tools = [perform_arithmetic]
+
+prompt = hub.pull("hwchase17/openai-tools-agent")
+prompt.pretty_print()
+prompt[0].prompt.template = "Your job is to perform math calculations using the perform_arithmetic function."
+prompt[0]
+
+model = ChatOpenAI(model="gpt-3.5-turbo-0125", temperature=0)
+agent = create_openai_tools_agent(model, tools, prompt)
+agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
+agent_executor.invoke(
+   {
+      "input": "What is ((910751 * 81301589) / 355) - 734872810242?"
+   }
+)
